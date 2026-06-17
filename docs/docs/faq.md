@@ -66,10 +66,38 @@ You pointed `ENGINE` at `django_pg_real_pool.dj_db_conn_pool` without installing
 pip install 'django-pg-real-pool[dj-db-conn-pool]'
 ```
 
+## What if some library opens a cursor and never closes it?
+
+ASAP release is triggered by **closing the cursor** — its `close()` / `__exit__`. Django's ORM and
+internals always use cursors as context managers (`with connection.cursor() as cur:`), so the early
+release is automatic for all normal ORM usage.
+
+If third-party code obtains a cursor and never closes it, the early release simply **does not
+happen for that scope**: the connection is held until Django's normal teardown
+(`close_old_connections()`, typically at the end of the request) — exactly like a plain pool, so no
+regression, just no ASAP benefit there.
+
+**Garbage collection does not rescue it.** Dropping the leaked cursor and letting it be collected
+does *not* return the connection — the cursor proxy intentionally has no `__del__`. A GC-time
+fallback was deliberately rejected, because it is both unreliable and unsafe:
+
+- Django connections are thread-bound. Cyclic GC can run on any thread, so a GC-time `close()`
+  would raise `DatabaseError` ("objects created in a thread can only be used in that same thread")
+  and be silently swallowed — the connection would *not* be returned anyway.
+- Worse, the proxy references the *wrapper*, not a specific borrow. A stale proxy collected later
+  (after its cursor was already closed) would close whatever connection the wrapper currently
+  holds — potentially one re-acquired for an unrelated query or an **active transaction**, rolling
+  it back mid-flight.
+
+So: keep cursors closed (the ORM does). For raw cursors in your own code, always use
+`with connection.cursor()`.
+
 ## Limitations
 
 - **PostgreSQL only.** The package builds on Django's PostgreSQL backend.
 - **Native engine requires psycopg 3.** psycopg 2 does not support the native pool.
 - **No persistent connections** (`CONN_MAX_AGE` must be 0) when pooling.
+- **Early release depends on cursors being closed.** Code that leaks an open cursor falls back to
+  normal end-of-request release (see the question above); GC does not return the connection.
 - Extra connection churn between queries — a deliberate trade for holding pool connections for the
   shortest possible time.

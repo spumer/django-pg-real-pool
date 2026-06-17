@@ -1,3 +1,4 @@
+import gc
 import uuid
 
 import pytest
@@ -221,6 +222,37 @@ def test_raw_cursor__context_manager__release_after_close(connection, pool):
         assert get_pool_size(pool) == 0
 
     # leaving the cursor context releases the connection back to the pool
+    assert not is_connected(connection)
+    assert get_pool_size(pool) == 1
+
+
+def test_unclosed_cursor__held_until_connection_close__gc_does_not_release(connection, pool):
+    """ASAP release is tied to closing the cursor, NOT to garbage collection.
+
+    Django's ORM always closes its cursors, so this never bites in practice. But third-party
+    code that opens a cursor and never closes it gets no early release: the connection is held
+    until Django's normal teardown (``close_old_connections()`` at end of request). Crucially,
+    garbage-collecting the leaked cursor does NOT return the connection — the proxy has no
+    ``__del__`` on purpose (a GC-time release would be unreliable across threads and could close
+    a connection already re-acquired for another operation).
+    """
+    db.close_old_connections()
+    assert not is_connected(connection)
+    assert get_pool_size(pool) == 1
+
+    cursor = connection.cursor()  # opened outside an atomic block, never closed
+    cursor.execute('SELECT 1')
+    assert is_connected(connection)
+    assert get_pool_size(pool) == 0
+
+    # dropping the cursor and forcing GC does NOT return the connection to the pool
+    del cursor
+    gc.collect()
+    assert is_connected(connection)
+    assert get_pool_size(pool) == 0
+
+    # only the normal connection close (what Django does at request end) returns it
+    connection.close()
     assert not is_connected(connection)
     assert get_pool_size(pool) == 1
 

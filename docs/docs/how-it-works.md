@@ -61,8 +61,10 @@ releases the connection.
 ```python
 class AutoConnectionReleaseCursor:
     def __exit__(self, *exc):
-        self.__cursor.__exit__(*exc)
-        self.close()
+        try:
+            self.__cursor.__exit__(*exc)
+        finally:
+            self.close()               # release even if the cursor's exit raises
 
     def close(self):
         try:
@@ -72,6 +74,15 @@ class AutoConnectionReleaseCursor:
         finally:
             self.__connection.close()  # ← return the connection to the pool
 ```
+
+!!! warning "Release is tied to closing the cursor — not to garbage collection"
+    The connection returns to the pool only when the cursor's `close()` / `__exit__` runs. Django's
+    ORM and internals always close their cursors, so this is automatic. Third-party code that opens
+    a cursor and never closes it gets **no** early release — the connection is held until Django's
+    normal teardown (`close_old_connections()` at end of request), same as a plain pool. Garbage
+    collection does **not** return it: the proxy has no `__del__` on purpose (a GC-time release is
+    unreliable across threads and could close a connection re-acquired for an unrelated operation).
+    See the [FAQ](faq.md#what-if-some-library-opens-a-cursor-and-never-closes-it) for details.
 
 ## Why it is backend-agnostic
 
