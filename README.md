@@ -1,5 +1,8 @@
 # django-pg-real-pool
 
+[![Documentation](https://img.shields.io/badge/docs-mkdocs--material-526CFE)](https://spumer.github.io/django-pg-real-pool/)
+[![Coverage](https://codecov.io/gh/spumer/django-pg-real-pool/graph/badge.svg)](https://codecov.io/gh/spumer/django-pg-real-pool)
+
 A Django PostgreSQL database backend that releases pooled connections **As Soon As Possible**.
 
 ## TL;DR
