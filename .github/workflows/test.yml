@@ -66,11 +66,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Create environment
-        run: uv venv --python ${{ matrix.python-version }}
-
       - name: Install package + pinned Django
+        # --clear: setup-uv already created .venv; recreate it for this Python.
+        # Install the exact Django from the matrix on top of the package's deps —
+        # do NOT use the lockfile here, it pins a single Django version.
         run: |
+          uv venv --clear --python ${{ matrix.python-version }}
           uv pip install -e . \
             "django==${{ matrix.django-version }}.*" \
             "psycopg[binary,pool]>=3.1.8" \
@@ -87,10 +88,12 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: postgres
           PGDATABASE: django_pg_real_pool
-        run: uv run coverage run -m pytest
+        # --no-sync: run in the env we built above without re-syncing from the lockfile
+        # (which would pin a single Django version and undo the matrix override).
+        run: uv run --no-sync coverage run -m pytest
 
       - name: Coverage report
-        run: uv run coverage xml
+        run: uv run --no-sync coverage xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
