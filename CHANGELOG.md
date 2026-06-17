@@ -14,4 +14,6 @@ Initial release.
   `dj-db-conn-pool` extra.
 - Fail-fast guard: the native engine raises `ImproperlyConfigured` if used without
   pooling enabled.
+- Opt-in diagnostic (`DJANGO_PG_REAL_POOL_WARN_UNCLOSED_CURSORS=1`): logs a warning, with the
+  open site, when a cursor is garbage-collected without being closed (never touches the connection).
 - Tested matrix: Python 3.10–3.14 × Django 5.1 / 5.2 LTS / 6.0 × both pool backends.

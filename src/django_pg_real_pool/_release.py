@@ -8,9 +8,24 @@ return the connection to their pool when :meth:`DatabaseWrapper.close` is called
 which is all this mixin relies on.
 """
 
+import logging
+import os
+import traceback
 from typing import TYPE_CHECKING
 
 from django.utils.asyncio import async_unsafe
+
+_logger = logging.getLogger('django_pg_real_pool')
+
+
+def _env_truthy(value):
+    return (value or '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+# Opt-in diagnostic: when enabled, a cursor garbage-collected without being closed logs a
+# warning (it NEVER touches the connection — a GC-time close would be unsafe). Read once at
+# import; tests monkeypatch this module-level flag.
+_WARN_UNCLOSED = _env_truthy(os.environ.get('DJANGO_PG_REAL_POOL_WARN_UNCLOSED_CURSORS'))
 
 if TYPE_CHECKING:
     # For type checkers only: declare the host class so attribute access (self.connection,
@@ -96,6 +111,10 @@ class AutoConnectionReleaseCursor:
     def __init__(self, connection, cursor):
         super().__setattr__('_AutoConnectionReleaseCursor__connection', connection)
         super().__setattr__('_AutoConnectionReleaseCursor__cursor', cursor)
+        super().__setattr__('_AutoConnectionReleaseCursor__closed', False)
+        # Capture the open site only when the diagnostic is on (it's not free).
+        opened_at = ''.join(traceback.format_stack()[:-1]) if _WARN_UNCLOSED else None
+        super().__setattr__('_AutoConnectionReleaseCursor__opened_at', opened_at)
 
     def __enter__(self):
         self.__cursor.__enter__()
@@ -119,6 +138,7 @@ class AutoConnectionReleaseCursor:
         return iter(self.__cursor)
 
     def close(self):
+        super().__setattr__('_AutoConnectionReleaseCursor__closed', True)
         try:
             self.__cursor.close()
         except self.__connection.Database.InterfaceError:
@@ -126,3 +146,22 @@ class AutoConnectionReleaseCursor:
             pass
         finally:
             self.__connection.close()
+
+    def __del__(self):
+        # Diagnostic only — NEVER touches the connection here (a GC-time close would be
+        # unsafe: it runs on an arbitrary thread and could release a connection that the
+        # wrapper has since re-acquired for another operation). Opt-in via
+        # DJANGO_PG_REAL_POOL_WARN_UNCLOSED_CURSORS.
+        if not _WARN_UNCLOSED:
+            return
+        try:
+            if self.__closed:
+                return
+            _logger.warning(
+                'Database cursor was garbage-collected without being closed; the pooled '
+                'connection was not released early. Always use `with connection.cursor()` '
+                'or call cursor.close().\nCursor opened at:\n%s',
+                self.__opened_at or '<stack not captured>',
+            )
+        except Exception:  # never raise from __del__
+            pass

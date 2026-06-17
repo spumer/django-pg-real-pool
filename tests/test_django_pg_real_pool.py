@@ -1,4 +1,5 @@
 import gc
+import logging
 import uuid
 
 import pytest
@@ -255,6 +256,53 @@ def test_unclosed_cursor__held_until_connection_close__gc_does_not_release(conne
     connection.close()
     assert not is_connected(connection)
     assert get_pool_size(pool) == 1
+
+
+_UNCLOSED_MSG = 'garbage-collected without being closed'
+
+
+def test_unclosed_cursor__warns_when_diagnostic_enabled(connection, caplog, monkeypatch):
+    import django_pg_real_pool._release as release
+
+    monkeypatch.setattr(release, '_WARN_UNCLOSED', True)
+    db.close_old_connections()
+
+    with caplog.at_level(logging.WARNING, logger='django_pg_real_pool'):
+        cursor = connection.cursor()
+        cursor.execute('SELECT 1')
+        del cursor
+        gc.collect()
+
+    assert any(_UNCLOSED_MSG in r.getMessage() for r in caplog.records)
+    connection.close()  # release the still-held connection
+
+
+def test_closed_cursor__no_warning_when_diagnostic_enabled(connection, caplog, monkeypatch):
+    import django_pg_real_pool._release as release
+
+    monkeypatch.setattr(release, '_WARN_UNCLOSED', True)
+    db.close_old_connections()
+
+    with caplog.at_level(logging.WARNING, logger='django_pg_real_pool'):
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT 1')
+        gc.collect()
+
+    assert not any(_UNCLOSED_MSG in r.getMessage() for r in caplog.records)
+
+
+def test_unclosed_cursor__no_warning_by_default(connection, caplog):
+    # _WARN_UNCLOSED defaults to False (env not set): no diagnostic, no overhead.
+    db.close_old_connections()
+
+    with caplog.at_level(logging.WARNING, logger='django_pg_real_pool'):
+        cursor = connection.cursor()
+        cursor.execute('SELECT 1')
+        del cursor
+        gc.collect()
+
+    assert not any(_UNCLOSED_MSG in r.getMessage() for r in caplog.records)
+    connection.close()
 
 
 def test__atomic__on_commit__called_after_commit(connection, pool):

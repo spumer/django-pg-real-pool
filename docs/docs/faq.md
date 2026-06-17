@@ -92,6 +92,25 @@ fallback was deliberately rejected, because it is both unreliable and unsafe:
 So: keep cursors closed (the ORM does). For raw cursors in your own code, always use
 `with connection.cursor()`.
 
+### Finding leaked cursors
+
+To hunt down code that leaks cursors, set the environment variable
+`DJANGO_PG_REAL_POOL_WARN_UNCLOSED_CURSORS=1`. When enabled, a cursor that is garbage-collected
+without having been closed logs a warning to the `django_pg_real_pool` logger, including the stack
+where the cursor was opened:
+
+```
+Database cursor was garbage-collected without being closed; the pooled connection
+was not released early. Always use `with connection.cursor()` or call cursor.close().
+Cursor opened at:
+  ...stack trace...
+```
+
+This is **diagnostic only** — it never closes the connection from `__del__` (that would be unsafe,
+as explained above); it just tells you where to fix the caller. Keep it off in production (it
+captures a stack trace per cursor); turn it on in development or CI when chasing a connection-hold
+regression.
+
 ## Limitations
 
 - **PostgreSQL only.** The package builds on Django's PostgreSQL backend.
