@@ -34,7 +34,10 @@ except ImportError as exc:  # pragma: no cover - exercised via the missing-extra
     ) from exc
 
 from django_pg_real_pool._release import ConnectionReleaseMixin
+from django_pg_real_pool._telemetry import TelemetryMixin
 
 
-class DatabaseWrapper(ConnectionReleaseMixin, _PooledDatabaseWrapper):
+class DatabaseWrapper(ConnectionReleaseMixin, TelemetryMixin, _PooledDatabaseWrapper):
     """PostgreSQL wrapper with dj_db_conn_pool pooling and ASAP connection release."""
+
+    telemetry_backend = 'dj_db_conn_pool'

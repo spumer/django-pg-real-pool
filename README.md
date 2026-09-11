@@ -105,6 +105,21 @@ If you cannot use psycopg 3 / Django 5.1, or you already standardised on
 `PRE_PING`, `ECHO`. Effective defaults when omitted: `pool_size=10`, `max_overflow=10`,
 `recycle=900`, `timeout=30`, `pre_ping=True`.
 
+## Optional pool metrics
+
+```bash
+pip install 'django-pg-real-pool[telemetry]'
+```
+
+```python
+DJANGO_PG_REAL_POOL_TELEMETRY = {"ENABLED": True}
+```
+
+Exports Prometheus gauges for used/idle connections, current size and maximum capacity,
+plus checkout/error/timeout counters (and native pool queue depth). Metric names and labels
+are configurable. `server_address` identifies the configured endpoint, including the full
+multi-host list. See [telemetry configuration and multiprocess setup](docs/docs/telemetry.md).
+
 ## When (not) to use it
 
 Good fit:
