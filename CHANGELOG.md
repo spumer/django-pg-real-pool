@@ -1,3 +1,12 @@
+## Unreleased
+
+### Feat
+
+- Opt-in Prometheus pool telemetry via the `telemetry` extra for both backends, with
+  configurable metric names, static/dynamic labels and multiprocess gauge aggregation.
+- Used/idle connections, pool size/capacity, checkout/error/timeout counters and native
+  queue depth. Endpoint labels preserve the configured multi-host address list.
+
 ## v0.1.0
 
 Initial release.

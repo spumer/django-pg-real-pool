@@ -72,7 +72,7 @@ jobs:
         # do NOT use the lockfile here, it pins a single Django version.
         run: |
           uv venv --clear --python ${{ matrix.python-version }}
-          uv pip install -e . \
+          uv pip install -e ".[telemetry]" \
             "django==${{ matrix.django-version }}.*" \
             "psycopg[binary,pool]>=3.1.8" \
             pytest pytest-django "coverage[toml]"

@@ -21,9 +21,10 @@ from django.db.backends.base.base import NO_DB_ALIAS
 from django.db.backends.postgresql.base import DatabaseWrapper as PostgresDatabaseWrapper
 
 from django_pg_real_pool._release import ConnectionReleaseMixin
+from django_pg_real_pool._telemetry import TelemetryMixin
 
 
-class DatabaseWrapper(ConnectionReleaseMixin, PostgresDatabaseWrapper):
+class DatabaseWrapper(ConnectionReleaseMixin, TelemetryMixin, PostgresDatabaseWrapper):
     """PostgreSQL wrapper with native pooling and ASAP connection release."""
 
     def get_new_connection(self, conn_params):

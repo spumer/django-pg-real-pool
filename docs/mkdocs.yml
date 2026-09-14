@@ -51,5 +51,6 @@ nav:
   - How it works: how-it-works.md
   - Installation: installation.md
   - Configuration: configuration.md
+  - Telemetry: telemetry.md
   - Compatibility: compatibility.md
   - FAQ & limitations: faq.md

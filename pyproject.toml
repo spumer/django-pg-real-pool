@@ -39,6 +39,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+telemetry = ["prometheus-client>=0.20,<1"]
 # Third-party SQLAlchemy-QueuePool backend (ENGINE = 'django_pg_real_pool.dj_db_conn_pool').
 # Opt-in: brings SQLAlchemy + sqlparams as transitive deps and works on Django < 5.1.
 dj-db-conn-pool = ["django-db-connection-pool>=1.2.6"]
@@ -51,6 +52,7 @@ Changelog = "https://github.com/spumer/django-pg-real-pool/blob/master/CHANGELOG
 [dependency-groups]
 # PEP 735 dev dependencies (not published). Installed by `uv sync`.
 dev = [
+    "prometheus-client>=0.20,<1",
     "pytest>=8.0",
     "pytest-django>=4.8",
     "pytest-clarity>=1.0.1",
@@ -133,6 +135,8 @@ unfixable = ["F401", "F841"]
 # Lazy/in-test imports are intentional here: the conftest pool fixture imports the
 # optional third-party package only when that backend is active, and test_engines
 # imports submodules inside the tests that exercise them.
+"src/django_pg_real_pool/telemetry.py" = ["PLC0415"] # optional dependencies
+"src/django_pg_real_pool/_telemetry.py" = ["PLC0415"] # optional dependencies
 "tests/*" = ["D100", "D101", "D102", "D103", "PLR2004", "PT004", "PLC0415", "SIM117"]
 
 [tool.ruff.lint.flake8-tidy-imports]

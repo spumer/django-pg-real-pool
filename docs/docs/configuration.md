@@ -104,3 +104,8 @@ DATABASES = {
     },
 }
 ```
+
+## Optional telemetry
+
+See [Pool telemetry](telemetry.md) for opt-in Prometheus metrics, custom names, dynamic labels
+and worker-process aggregation. Telemetry settings live outside driver `OPTIONS`.

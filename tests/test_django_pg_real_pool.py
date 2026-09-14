@@ -14,6 +14,17 @@ pytestmark = [
 ]
 
 
+@pytest.fixture(autouse=True, params=[False, True], ids=['telemetry-off', 'telemetry-on'])
+def telemetry_mode(request, connection, monkeypatch):
+    """Exercise all release invariants with and without telemetry."""
+    connection.close()
+    monkeypatch.setattr(
+        connection, '_telemetry_config', {'ENABLED': True} if request.param else None
+    )
+    yield
+    connection.close()
+
+
 def is_connected(connection):
     """True while a real connection is checked out and pinned to this wrapper."""
     return connection.connection is not None
