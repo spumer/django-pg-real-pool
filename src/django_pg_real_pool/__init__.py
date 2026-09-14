@@ -12,6 +12,6 @@ Engines:
 
 from django_pg_real_pool._release import AutoConnectionReleaseCursor, ConnectionReleaseMixin
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 
 __all__ = ['AutoConnectionReleaseCursor', 'ConnectionReleaseMixin', '__version__']

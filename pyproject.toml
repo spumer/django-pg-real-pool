@@ -5,7 +5,7 @@ build-backend = "uv_build"
 
 [project]
 name = "django-pg-real-pool"
-version = "1.0.0"
+version = "1.1.0"
 description = "Django PostgreSQL backend that releases pooled connections As Soon As Possible"
 readme = "README.md"
 license = "MIT"

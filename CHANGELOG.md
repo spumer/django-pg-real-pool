@@ -1,11 +1,18 @@
 ## Unreleased
 
+## v1.1.0
+
 ### Feat
 
 - Opt-in Prometheus pool telemetry via the `telemetry` extra for both backends, with
   configurable metric names, static/dynamic labels and multiprocess gauge aggregation.
 - Used/idle connections, pool size/capacity, checkout/error/timeout counters and native
   queue depth. Endpoint labels preserve the configured multi-host address list.
+
+### Fix
+
+- Invalid telemetry configuration now consistently raises `ImproperlyConfigured`, including
+  malformed containers and unhashable metric or label names.
 
 ## v0.1.0
 
