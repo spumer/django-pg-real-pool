@@ -166,8 +166,13 @@ def test_threaded_usage(observer, registry):
     [
         {'METRIC_NAMES': {'unknown': 'foo'}},
         {'METRIC_NAMES': {'connection_count': 'invalid-name'}},
+        {'METRIC_NAMES': []},
         {'LABELS': {'state': 'reserved'}},
+        {'LABELS': ['service']},
+        {'LABELS': {1: 'value'}},
         {'LABEL_NAMES': ['cluster', 'cluster']},
+        {'LABEL_NAMES': 'cluster'},
+        {'LABEL_NAMES': [1]},
         {'INTERVAL': 0},
         {'INTERVAL': float('nan')},
         {'LABELS_PROVIDER': 123},
