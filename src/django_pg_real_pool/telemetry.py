@@ -99,9 +99,10 @@ def validate(config):
     if set(names) - _DEFAULTS.keys():
         raise ImproperlyConfigured('Unknown telemetry METRIC_NAMES key.')
     resolved = [names.get(key, value[0]) for key, value in _DEFAULTS.items()]
-    if len(set(resolved)) != len(resolved) or any(
-        not isinstance(name, str) or not re.fullmatch(r'[a-zA-Z_:][a-zA-Z0-9_:]*', name)
-        for name in resolved
+    if (
+        any(not isinstance(name, str) for name in resolved)
+        or len(set(resolved)) != len(resolved)
+        or any(not re.fullmatch(r'[a-zA-Z_:][a-zA-Z0-9_:]*', name) for name in resolved)
     ):
         raise ImproperlyConfigured('Telemetry metric names must be valid and unique.')
     static_labels = config.get('LABELS', {})
@@ -112,12 +113,15 @@ def validate(config):
         raise ImproperlyConfigured('Telemetry LABEL_NAMES must be a sequence of strings.')
     labels = list(static_labels) + list(dynamic_labels)
     reserved = {'pool_name', 'server_address', 'state', 'pid'}
-    if len(labels) != len(set(labels)) or any(
-        not isinstance(name, str)
-        or not re.fullmatch(r'[a-zA-Z_][a-zA-Z0-9_]*', name)
-        or name.startswith('__')
-        or name in reserved
-        for name in labels
+    if (
+        any(not isinstance(name, str) for name in labels)
+        or len(labels) != len(set(labels))
+        or any(
+            not re.fullmatch(r'[a-zA-Z_][a-zA-Z0-9_]*', name)
+            or name.startswith('__')
+            or name in reserved
+            for name in labels
+        )
     ):
         raise ImproperlyConfigured('Telemetry labels must be valid, unique and not reserved.')
     interval = config.get('INTERVAL', 1.0)
